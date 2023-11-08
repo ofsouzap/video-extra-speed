@@ -1,4 +1,4 @@
-let speed_enabled: boolean = false;
+let tabSpeedsEnabled: Record<number, boolean> = { };
 
 function inject_setSpeed(s: number): void {
     let eles = document.getElementsByTagName("video");
@@ -9,7 +9,7 @@ function inject_setSpeed(s: number): void {
     }
 
     if (eles.length > 0)
-        console.log("Speed set");
+        console.log("Playback speed set to " + s);
     else
         console.log("No targets found for speed-up");
 }
@@ -21,25 +21,35 @@ function setSpeed(tabId: number, s: number) {
             "func": inject_setSpeed,
             "args": [ s ],
         })
-        .then(() => console.log("Done"))
+        .then(() => {
+            console.log("Injected script on tab " + tabId);
+        })
     ;
 }
 
-function getSpeedSetting(): number {
-    return speed_enabled ? 2.5 : 1;
+function getSpeedSetting(tabId: number): number {
+    if (!tabSpeedsEnabled[tabId]) {
+        tabSpeedsEnabled[tabId] = false;
+    }
+
+    return tabSpeedsEnabled[tabId] ? 2.5 : 1;
 }
 
 async function update(tabId: number) {
-    setSpeed(tabId, getSpeedSetting());
+    setSpeed(tabId, getSpeedSetting(tabId));
 
     await chrome.action.setBadgeText({
         "tabId": tabId,
-        "text": speed_enabled ? "ON" : "OFF"
+        "text": getSpeedSetting(tabId).toString()
     });
 }
 
 async function toggle(tabId: number) {
-    speed_enabled = !speed_enabled;
+    if (!tabSpeedsEnabled[tabId]) {
+        tabSpeedsEnabled[tabId] = false;
+    }
+
+    tabSpeedsEnabled[tabId] = !tabSpeedsEnabled[tabId];
 
     await update(tabId);
 }
@@ -50,6 +60,4 @@ chrome.action.onClicked.addListener(async (tab) => {
         await toggle(tabId);
 });
 
-chrome.runtime.onInstalled.addListener(() => {
-    speed_enabled = false;
-});
+chrome.runtime.onInstalled.addListener(() => { }); // Nothing for now, might be helpful to keep here for another time
