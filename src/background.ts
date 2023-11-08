@@ -1,47 +1,55 @@
-let state: boolean = false;
-let tabId: number | undefined = undefined;
+let speed_enabled: boolean = false;
 
-function f_setSpeedFast(s: number): void {
-    document.getElementsByTagName("video")[0].playbackRate = s;
-    console.log("Speed set");
-}
+function inject_setSpeed(s: number): void {
+    let eles = document.getElementsByTagName("video");
 
-function setSpeed(s: number) {
-    if (tabId !== undefined) {
-        chrome.scripting
-            .executeScript({
-                "target": {"tabId": tabId},
-                "func": f_setSpeedFast,
-                "args": [ s ],
-            })
-            .then(() => console.log("Done"))
-        ;
+    for (let i = 0; i < eles.length; i++) {
+        const ele = eles[i];
+        ele.playbackRate = s;
     }
+
+    if (eles.length > 0)
+        console.log("Speed set");
+    else
+        console.log("No targets found for speed-up");
 }
 
-async function update() {
-    setSpeed(state ? 2.5 : 1);
-
-    if (tabId !== undefined) {
-       await chrome.action.setBadgeText({
-            "tabId": tabId,
-            "text": state ? "ON" : "OFF"
-        });
-    }
+function setSpeed(tabId: number, s: number) {
+    chrome.scripting
+        .executeScript({
+            "target": {"tabId": tabId},
+            "func": inject_setSpeed,
+            "args": [ s ],
+        })
+        .then(() => console.log("Done"))
+    ;
 }
 
-async function toggle() {
-    state = !state;
+function getSpeedSetting(): number {
+    return speed_enabled ? 2.5 : 1;
+}
 
-    await update();
+async function update(tabId: number) {
+    setSpeed(tabId, getSpeedSetting());
+
+    await chrome.action.setBadgeText({
+        "tabId": tabId,
+        "text": speed_enabled ? "ON" : "OFF"
+    });
+}
+
+async function toggle(tabId: number) {
+    speed_enabled = !speed_enabled;
+
+    await update(tabId);
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
-    tabId = tab.id;
-    await toggle();
+    let tabId = tab.id;
+    if (tabId !== undefined)
+        await toggle(tabId);
 });
 
 chrome.runtime.onInstalled.addListener(() => {
-    state = false;
-    update();
+    speed_enabled = false;
 });
