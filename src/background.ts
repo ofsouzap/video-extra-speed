@@ -1,4 +1,14 @@
-let tabSpeedsEnabled: Record<number, boolean> = { };
+const speedSettings: number[] = [
+    1,
+    1.75,
+    2,
+    2.5,
+    3,
+    5
+];
+const DEFAULT_SPEED_INDEX: number = 0;
+
+let tabSpeedIndexes: Record<number, number> = { };
 
 function inject_setSpeed(s: number): void {
     let eles = document.getElementsByTagName("video");
@@ -14,12 +24,38 @@ function inject_setSpeed(s: number): void {
         console.log("No targets found for speed-up");
 }
 
-function setSpeed(tabId: number, s: number) {
+function nextSpeed(tabId: number) {
+    if (!tabSpeedIndexes[tabId]) {
+        tabSpeedIndexes[tabId] = DEFAULT_SPEED_INDEX;
+    }
+
+    tabSpeedIndexes[tabId] += 1;
+    tabSpeedIndexes[tabId] %= speedSettings.length;
+}
+
+function getTabSpeedIndex(tabId: number): number {
+    if (tabSpeedIndexes[tabId]) {
+        return tabSpeedIndexes[tabId];
+    } else {
+        return DEFAULT_SPEED_INDEX;
+    }
+}
+
+function getTabSpeed(tabId: number): number {
+    return speedSettings[getTabSpeedIndex(tabId)];
+}
+
+function getTabIconLabel(tabId: number): string {
+    let speedIndex: number = getTabSpeedIndex(tabId);
+    return speedIndex == DEFAULT_SPEED_INDEX ? "" : speedSettings[speedIndex].toString();
+}
+
+function setSpeed(tabId: number, speed: number) {
     chrome.scripting
         .executeScript({
             "target": {"tabId": tabId},
             "func": inject_setSpeed,
-            "args": [ s ],
+            "args": [ speed ],
         })
         .then(() => {
             console.log("Injected script on tab " + tabId);
@@ -27,37 +63,21 @@ function setSpeed(tabId: number, s: number) {
     ;
 }
 
-function getSpeedSetting(tabId: number): number {
-    if (!tabSpeedsEnabled[tabId]) {
-        tabSpeedsEnabled[tabId] = false;
-    }
+async function nextSpeedAndUpdate(tabId: number) {
+    nextSpeed(tabId);
 
-    return tabSpeedsEnabled[tabId] ? 2.5 : 1;
-}
-
-async function update(tabId: number) {
-    setSpeed(tabId, getSpeedSetting(tabId));
+    setSpeed(tabId, getTabSpeed(tabId));
 
     await chrome.action.setBadgeText({
         "tabId": tabId,
-        "text": getSpeedSetting(tabId).toString()
+        "text": getTabIconLabel(tabId)
     });
-}
-
-async function toggle(tabId: number) {
-    if (!tabSpeedsEnabled[tabId]) {
-        tabSpeedsEnabled[tabId] = false;
-    }
-
-    tabSpeedsEnabled[tabId] = !tabSpeedsEnabled[tabId];
-
-    await update(tabId);
 }
 
 chrome.action.onClicked.addListener(async (tab) => {
     let tabId = tab.id;
     if (tabId !== undefined)
-        await toggle(tabId);
+        await nextSpeedAndUpdate(tabId);
 });
 
 chrome.runtime.onInstalled.addListener(() => { }); // Nothing for now, might be helpful to keep here for another time
