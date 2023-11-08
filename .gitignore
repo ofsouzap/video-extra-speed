@@ -40,3 +40,7 @@ dist/**/*
 
 # ignore yarn.lock
 yarn.lock
+
+# Ignore Chrome Extension files
+*.crx
+*.pem
