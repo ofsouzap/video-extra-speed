@@ -1,13 +1,13 @@
-state = false;
-tabId = null;
+let state: boolean = false;
+let tabId: number | undefined = undefined;
 
-function f_setSpeedFast(s) {
+function f_setSpeedFast(s: number): void {
     document.getElementsByTagName("video")[0].playbackRate = s;
     console.log("Speed set");
 }
 
-function setSpeed(s) {
-    if (tabId !== null) {
+function setSpeed(s: number) {
+    if (tabId !== undefined) {
         chrome.scripting
             .executeScript({
                 "target": {"tabId": tabId},
@@ -22,7 +22,7 @@ function setSpeed(s) {
 async function update() {
     setSpeed(state ? 2.5 : 1);
 
-    if (tabId !== null) {
+    if (tabId !== undefined) {
        await chrome.action.setBadgeText({
             "tabId": tabId,
             "text": state ? "ON" : "OFF"
