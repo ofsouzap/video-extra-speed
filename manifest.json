@@ -1,0 +1,13 @@
+{
+    "name": "Video Extra Speed",
+    "description": "Increase video speeds",
+    "version": "1.0",
+    "manifest_version": 3,
+    "permissions": [ "scripting", "activeTab" ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        
+    }
+}
